@@ -2,7 +2,7 @@ import * as AWS from 'aws-sdk'
 //import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { PostItem } from '../models/PostItem'
-//import { PostUpdate } from '../models/PostUpdate'
+import { PostUpdate } from '../models/PostUpdate'
 
 import { createLogger } from '../utils/logger'
 const logger = createLogger('postsAccess')
@@ -30,6 +30,7 @@ export class PostAccess {
 
 		const items = result.Items
 		if (items.length > 0) {
+			items.reverse()
 			return items as PostItem[]
 		}
 		return [];
@@ -37,24 +38,25 @@ export class PostAccess {
 
 	async getAllPosts(): Promise<PostItem[]> {
 		logger.info('get all posts')
-		const result = await this.docClient.query({
+		const result = await this.docClient.scan({
 			TableName: this.postsTable
 		}).promise()
 
 		const items = result.Items
 		if (items.length > 0) {
+			items.reverse()
 			return items as PostItem[]
 		}
 		return [];
 	}
 
-	async getTodo(todoId: string): Promise<PostItem[]> {
+	async getPost(postId: string): Promise<PostItem[]> {
 		logger.info('get post')
 		const result = await this.docClient.query({
 			TableName: this.postsTable,
-			KeyConditionExpression: 'todoId = :todoId',
+			KeyConditionExpression: 'postId = :postId',
 			ExpressionAttributeValues: {
-				':todoId': todoId,
+				':postId': postId,
 			}
 		}).promise()
 
@@ -62,7 +64,7 @@ export class PostAccess {
 		return items as PostItem[]
 	}
 
-	async createTodo(post: PostItem): Promise<PostItem> {
+	async createPost(post: PostItem): Promise<PostItem> {
 		logger.info('create post for user')
 		await this.docClient.put({
 			TableName: this.postsTable,
@@ -72,14 +74,13 @@ export class PostAccess {
 		return post
 	}
 
-	/*
-	async deleteTodo(todoId: string, userId: string): Promise<Boolean> {
+	async deletePost(postId: string, userId: string): Promise<Boolean> {
 		logger.info('delete todo for user' + userId)
 
 		await this.docClient.delete({
 			TableName: this.postsTable,
 			Key: {
-				"todoId": todoId,
+				"postId": postId,
 				"userId": userId,
 			}
 		}).promise()
@@ -87,29 +88,24 @@ export class PostAccess {
 		return true;
 	}
 
-	async updateTodo(todoId: string, userId: string, updatedTodo: TodoUpdate): Promise<Boolean> {
+	async updatePost(postId: string, userId: string, updatedPost: PostUpdate): Promise<Boolean> {
 		logger.info('update todo for user ' + userId)
 		await this.docClient.update({
 			TableName: this.postsTable,
 			Key: {
-				"todoId": todoId,
+				"postId": postId,
 				"userId": userId
 			},
-			UpdateExpression: "SET attachmentUrl = :attachmentUrl, #n = :name, dueDate = :dueDate, done = :done",
+			UpdateExpression: "SET caption = :caption, tags = :tags, updatedAt = :updatedAt",
 			ExpressionAttributeValues: {
-				":attachmentUrl": updatedTodo.attachmentUrl,
-				":name": updatedTodo.name,
-				":dueDate": updatedTodo.dueDate,
-				":done": updatedTodo.done
-			},
-			ExpressionAttributeNames: {
-				"#n": "name"
+				":caption": updatedPost.caption,
+				":tags": updatedPost.tags,
+				":updatedAt": updatedPost.updatedAt
 			}
 		}).promise()
 
 		return true;
 	}
-	*/
 }
 
 function createDynamoDBClient() {

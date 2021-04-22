@@ -23,9 +23,36 @@ provider:
     POSTS_TABLE: Post-${self:provider.stage}
     POST_ID_INDEX: PostIdIndex
     USER_ID_INDEX: UserIdIndex
+    FAVOURITES_TABLE: Favourite-${self:provider.stage}
     GIFS_S3_BUCKET: stan-serverless-posts-gifs-bucket-${self:provider.stage}
     AUTH_0_SECRET: JYwTxMqVupS2XECp0fjH9BiYG9bG0V9c1CQO_w6B5z45m5LD8_-YjlbxexaxTw39
-    SIGNED_URL_EXPIRATION: 300
+    SIGNED_URL_EXPIRATION: 2000
+
+custom:
+  serverless-offline:
+    port: 3003
+
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+    stages:
+        - dev
+
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Udagram API
+        description: Serverless application for images sharing
+    models:
+      - name: CreateTodoRequest
+        contentType: application/json
+        schema: ${file(models/create-todo-request.json)}
+      - name: UpdateTodoRequest
+        contentType: application/json
+        schema: ${file(models/update-todo-request.json)}
 
 functions: 
   # TODO: Configure this function
@@ -39,14 +66,79 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action:
+          - dynamodb:Scan
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
       - Effect: Allow
         Action:
+          - dynamodb:Scan
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
 
   # TODO: Configure this function
+  GetUserPosts:
+    handler: src/lambda/http/getUserPosts.handler
+    events:
+      - http:
+          method: get
+          path: posts/me
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+
+          # TODO: Configure this function
+  GetFavourites:
+    handler: src/lambda/http/getUserFavourites.handler
+    events:
+      - http:
+          method: get
+          path: favourites
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.FAVOURITES_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FAVOURITES_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+
+
+  # TODO: Configure this function
+  GetPost:
+    handler: src/lambda/http/getPost.handler
+    events:
+      - http:
+          method: get
+          path: posts/{postId}
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+
+
+
+        # TODO: Configure this function
   CreatePost:
     handler: src/lambda/http/createPost.handler
     events:
@@ -65,6 +157,90 @@ functions:
           - dynamodb:PutItem
         Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
 
+
+        # TODO: Configure this function
+  CreateFavourite:
+    handler: src/lambda/http/createFavourite.handler
+    events:
+      - http:
+          method: post
+          path: favourites
+          cors: true
+          request:
+            # Schema that will be used to validate incoming requests
+            schema:
+              application/json: ${file(src/models/create-favourite-request.json)}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.FAVOURITES_TABLE}
+
+
+  # TODO: Configure this function
+  UpdatePost:
+    handler: src/lambda/http/updatePost.handler
+    events:
+      - http:
+          method: patch
+          path: posts/{postId}
+          cors: true
+          request:
+            # Schema that will be used to validate incoming requests
+            schema:
+              application/json: ${file(src/models/update-post-request.json)}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+
+  # TODO: Configure this function
+  DeletePost:
+    handler: src/lambda/http/deletePost.handler
+    events:
+      - http:
+          method: delete
+          path: posts/{postId}
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.POSTS_TABLE}
+  
+
+  # TODO: Configure this function
+  DeleteFavourite:
+    handler: src/lambda/http/deleteFavourite.handler
+    events:
+      - http:
+          method: delete
+          path: favourites/{favouriteId}
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.FAVOURITES_TABLE}
+  
+  # TODO: Configure this function
+  GetUploadUrl:
+    handler: src/lambda/http/getUploadUrl.handler
+    events:
+      - http:
+          method: post
+          path: posts/attachment
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.GIFS_S3_BUCKET}/*
 
 resources:
   Resources:
@@ -104,6 +280,29 @@ resources:
             KeyType: RANGE   
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.POSTS_TABLE}
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.USER_ID_INDEX}
+            KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    FavouritesDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: favouriteId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: favouriteId
+            KeyType: HASH
+          - AttributeName: userId
+            KeyType: RANGE   
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.FAVOURITES_TABLE}
         GlobalSecondaryIndexes:
           - IndexName: ${self:provider.environment.USER_ID_INDEX}
             KeySchema:
