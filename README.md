@@ -1,5 +1,7 @@
 # Capstone explained
 
+Project option: Serverless
+
 Project use case:
 
 Image sharing platform similar to Instagram. Users share photos with other users on the platform and can choose to save their favourite photos. The 'favourites' tab on the frontend will list all the images that the user has favourited. The 'me' tab will list all the posts that were posted by the current user.
