@@ -1,4 +1,4 @@
-# Capstone explained
+# Capstone Project Explained
 
 Project option: Serverless
 
